@@ -1,5 +1,4 @@
 const std = @import("std");
-const io = std.io;
 const clap = @import("clap");
 const C = @cImport({
     @cInclude("hydrogen.h");
@@ -28,7 +27,7 @@ pub fn main() anyerror!void {
     var res = clap.parse(clap.Help, &params, parsers, .{
         .diagnostic = &diag,
     }) catch |err| {
-        diag.report(io.getStdErr().writer(), err) catch {};
+        diag.report(std.io.getStdErr().writer(), err) catch {};
         return err;
     };
     defer res.deinit();
