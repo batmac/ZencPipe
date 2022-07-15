@@ -1,5 +1,5 @@
-//const clap = @import("clap");
 const std = @import("std");
+const clap = @import("clap");
 const hydro = @cImport({
     @cInclude("hydrogen.h");
 });

@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: "recursive"
+
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v1.3.0
+
+      - uses: nektro/actions-setup-zigmod
+
+      - run: zig version
+      - run: zig env
+      - run: zigmod version
+      - run: zigmod ci
+      - run: zig build
