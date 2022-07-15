@@ -2,6 +2,8 @@ all:
 	@zig fmt .
 	@zig build
 init:
+	@pre-commit install
+	@pre-commit autoupdate
 	@git submodule init
 	@zigmod fetch
 clean:
