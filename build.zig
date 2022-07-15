@@ -25,7 +25,7 @@ pub fn build(b: *std.build.Builder) void {
     exe.addIncludeDir(libhydrogenDir);
     exe.setTarget(target);
     exe.setBuildMode(mode);
-    // exe.linkLibC();
+    exe.linkLibC();
 
     exe.step.dependOn(&lib_tests.step);
     exe.install();
