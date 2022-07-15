@@ -14,8 +14,10 @@ jobs:
 
       - name: Setup Zig
         uses: goto-bus-stop/setup-zig@v1.3.0
+        with:
+          version: "0.9.1"
 
-      - uses: nektro/actions-setup-zigmod
+      - uses: nektro/actions-setup-zigmod@v1
 
       - run: zig version
       - run: zig env
