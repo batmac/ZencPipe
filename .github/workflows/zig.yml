@@ -24,6 +24,7 @@ jobs:
       - run: zigmod version
       - run: zigmod ci
       - run: zig build
+      - run: ./zig-out/bin/ZencPipe -G
 
   lint:
     runs-on: ubuntu-latest
