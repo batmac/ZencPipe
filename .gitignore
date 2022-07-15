@@ -1,0 +1,6 @@
+zig-cache/
+zig-out/
+*.code-workspace
+*.old
+.zigmod
+deps.zig

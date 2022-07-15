@@ -1,0 +1,7 @@
+id: 8y0rvhvm25d5pdjlvset74s6sjcvhlv42gcel2p1rby5pymf
+name: ZencPipe
+license: ISC
+description: encpipe with Zig
+root_dependencies:
+
+  - src: git https://github.com/Hejsil/zig-clap
