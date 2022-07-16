@@ -36,3 +36,7 @@ repos:
     rev: v8.8.12
     hooks:
       - id: gitleaks
+  - repo: https://github.com/batmac/pre-commit-zig
+    rev: v0.1.0
+    hooks:
+      - id: zig-fmt
