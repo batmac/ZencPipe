@@ -62,5 +62,4 @@ fn passgen() !void {
     }
     const stdout = std.io.getStdOut().writer();
     _ = try stdout.print("{s}\n", .{hex});
-    std.os.exit(0);
 }
