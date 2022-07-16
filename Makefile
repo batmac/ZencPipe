@@ -1,6 +1,10 @@
-all:
+all: fmt build test
+fmt:
 	@zig fmt .
+build:
 	@zig build
+test:
+	@zig build test
 init:
 	@pre-commit install
 	@pre-commit autoupdate
