@@ -13,4 +13,4 @@ implemented:
 - [ ] `-o, --out <file>       write output to <file>`
 - [ ] `-h, --help             print this message`
 
-original is https://github.com/jedisct1/encpipe
+original is [here](https://github.com/jedisct1/encpipe)
