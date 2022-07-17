@@ -45,10 +45,6 @@ pub fn main() anyerror!void {
     }
 }
 
-test "basic test" {
-    try std.testing.expectEqual(10, 3 + 7);
-}
-
 fn passgen() !void {
     var password = [_]u8{0} ** 32;
     var hex = [_]u8{0} ** (32 * 2 + 1);
@@ -62,4 +58,12 @@ fn passgen() !void {
     }
     const stdout = std.io.getStdOut().writer();
     _ = try stdout.print("{s}\n", .{hex});
+}
+
+test "basic test" {
+    try std.testing.expectEqual(10, 3 + 7);
+}
+
+test "passgen" {
+    try passgen();
 }
