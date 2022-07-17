@@ -32,8 +32,6 @@ repos:
     hooks:
       - id: forbid-binary
       - id: markdownlint # Configure in .mdlrc
-      - id: shellcheck
-      # - id: shfmt
   - repo: https://github.com/zricethezav/gitleaks
     rev: v8.8.12
     hooks:
