@@ -1,4 +1,5 @@
 const std = @import("std");
+const mem = std.mem;
 const clap = @import("clap");
 const C = @cImport({
     @cInclude("hydrogen.h");
@@ -46,8 +47,8 @@ pub fn main() anyerror!void {
 }
 
 fn passgen() !void {
-    var password = [_]u8{0} ** 32;
-    var hex = [_]u8{0} ** (32 * 2 + 1);
+    var password = mem.zeroes([32:0]u8);
+    var hex = mem.zeroes([32 * 2 + 1:0]u8);
 
     _ = C.hydro_random_buf(&password, password.len);
     // std.log.debug("{s}", .{password});
