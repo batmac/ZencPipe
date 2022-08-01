@@ -33,7 +33,7 @@ repos:
       - id: forbid-binary
       - id: markdownlint # Configure in .mdlrc
   - repo: https://github.com/zricethezav/gitleaks
-    rev: v8.8.12
+    rev: v8.9.0
     hooks:
       - id: gitleaks
   - repo: https://github.com/batmac/pre-commit-zig
