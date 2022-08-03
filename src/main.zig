@@ -70,6 +70,7 @@ pub fn main() anyerror!void {
     const r = C.hydro_init();
     if (r != 0) {
         std.log.err("hydro_init error {}", .{r});
+        return error.HydroInit;
     }
 
     if (res.args.passgen) {
