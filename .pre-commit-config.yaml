@@ -27,11 +27,6 @@ repos:
         args: ['--remove']
       - id: mixed-line-ending
         args: ['--fix=lf']
-  - repo: https://github.com/jumanjihouse/pre-commit-hooks
-    rev: 2.1.6
-    hooks:
-      - id: forbid-binary
-      - id: markdownlint # Configure in .mdlrc
   - repo: https://github.com/zricethezav/gitleaks
     rev: v8.8.12
     hooks:
