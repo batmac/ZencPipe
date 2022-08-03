@@ -6,11 +6,12 @@ const C = @cImport({
     @cInclude("hydrogen.h");
 });
 const constants = @import("constants.zig");
+const utils = @import("utils.zig");
 const stdin = std.io.getStdIn().reader();
 const stdout = std.io.getStdOut().writer();
 
 var master_key = mem.zeroes([C.hydro_pwhash_MASTERKEYBYTES:0]u8);
-var backend = mem.zeroes([constants.DEFAULT_BUFFER_SIZE:0]u8);
+var password_buf = mem.zeroes([constants.DEFAULT_BUFFER_SIZE:0]u8);
 
 const Context = struct {
     in: ?[]const u8 = null,
@@ -18,8 +19,8 @@ const Context = struct {
     key: ?[C.hydro_secretbox_KEYBYTES:0]u8 = null,
     buf: [constants.DEFAULT_BUFFER_SIZE:0]u8 =
         mem.zeroes([constants.DEFAULT_BUFFER_SIZE:0]u8),
-    fd_in: ?u8 = null,
-    fd_out: ?u8 = null,
+    file_in: ?std.fs.File.Reader = stdin,
+    file_out: ?std.fs.File.Writer = stdout,
     encrypt: ?bool = null,
     has_key: bool = false,
 };
@@ -28,8 +29,7 @@ pub fn main() anyerror!void {
     var password: [:0]u8 = "";
 
     comptime {
-        // +1 to count the C string final zero.
-        std.debug.assert(constants.HYDRO_CONTEXT.len + 1 == C.hydro_secretbox_CONTEXTBYTES);
+        std.debug.assert(constants.HYDRO_CONTEXT.len == C.hydro_secretbox_CONTEXTBYTES);
     }
 
     var general_purpose_allocator = std.heap.GeneralPurposeAllocator(.{}){};
@@ -66,6 +66,7 @@ pub fn main() anyerror!void {
         return clap.help(std.io.getStdErr().writer(), clap.Help, &params, .{});
     }
 
+    utils.log("hydro_init...\n", .{});
     const r = C.hydro_init();
     if (r != 0) {
         std.log.err("hydro_init error {}", .{r});
@@ -77,11 +78,12 @@ pub fn main() anyerror!void {
 
     if (res.args.pass) |p| {
         // std.log.info("pass: {s}", .{p});
-        mem.copy(u8, backend[0..], p[0..]);
-        password = backend[0..p.len :0];
+        mem.copy(u8, password_buf[0..], p[0..]);
+        password = password_buf[0..p.len :0];
     }
 
     if (res.args.passfile) |p| {
+        utils.log("read passfile...\n", .{});
         // std.log.info("passfile: {s}", .{p});
         var f = fs.cwd().openFile(p, fs.File.OpenFlags{ .mode = .read_only }) catch |err| {
             std.log.err("{s} {?}", .{ p, err });
@@ -95,7 +97,8 @@ pub fn main() anyerror!void {
         // std.log.err("pass: {s}", .{password});
     }
 
-    std.log.info("length: {d}", .{password.len});
+    utils.log("password : {s}\n", .{password});
+    utils.log("password length: {d}\n", .{password.len});
     var ctx = Context{};
     try derive_key(&ctx, &password);
 
@@ -130,31 +133,80 @@ fn passgen() !void {
 }
 
 fn derive_key(ctx: *Context, password: *[:0]u8) !void {
+    utils.log("derive_key...\n", .{});
+    if (ctx.has_key) {
+        return error.KeyAlreadySet;
+    }
     // zig fmt: off
     const x = C.hydro_pwhash_deterministic(
       @ptrCast([*c]u8, &ctx.key), C.hydro_secretbox_KEYBYTES,
-      @ptrCast([*c]const u8, password), password.len,
+      @ptrCast([*c]const u8, password.*), password.len,
       constants.HYDRO_CONTEXT, &master_key,
       constants.PWHASH_OPSLIMIT, constants.PWHASH_MEMLIMIT,
       constants.PWHASH_THREADS,
     );
     // zig fmt: on
+    utils.log("end derive_key...\n", .{});
 
     if (x != 0) {
         return error.PwHashingFailed;
     }
 
     C.hydro_memzero(@ptrCast([*c]u8, password), password.len);
+    ctx.has_key = true;
 }
 
 fn stream_decrypt(ctx: *Context) !void {
-    //const chunk_size_p = ctx.buf[0..];
-    //const chunk = chunk_size_p + 4;
-    //const chunk_id: u64 = 0;
+    utils.log("stream_decrypt...\n", .{});
 
-    comptime {
-        // +1 to count the C string final zero.
-        std.debug.assert(ctx.buf.len + 1 >= 4 + C.hydro_secretbox_HEADERBYTES);
+    //const chunk = chunk_size_p + 4;
+
+    // +1 to count the C string final zero.
+    comptime std.debug.assert(ctx.buf.len + 1 >= 4 + C.hydro_secretbox_HEADERBYTES);
+    const max_chunk_size = ctx.buf.len - 4 - C.hydro_secretbox_HEADERBYTES;
+    comptime std.debug.assert(max_chunk_size <= 0x7fffffff);
+
+    var chunk_id: u64 = 0;
+    const in = ctx.file_in.?;
+
+    while (true) {
+        const chunk_size = try in.readIntLittle(u32);
+        utils.log("chunk_size={d} (max={d})\n", .{ chunk_size, max_chunk_size });
+
+        if (chunk_size == 0) {
+            break;
+        }
+        if (chunk_size > max_chunk_size) {
+            return error.ChunkSizeTooLarge;
+        }
+
+        const bytes_read = try in.readAll(ctx.buf[0 .. chunk_size + C.hydro_secretbox_HEADERBYTES]);
+        utils.log("bytes_read={d}\n", .{bytes_read});
+
+        if (bytes_read != chunk_size + C.hydro_secretbox_HEADERBYTES) {
+            return error.ReadChunkTooShort;
+        }
+
+        // zig fmt: off
+        const r = C.hydro_secretbox_decrypt(
+            @ptrCast(*anyopaque,&ctx.buf),
+            @ptrCast([*c]const u8,&ctx.buf),
+            chunk_size + C.hydro_secretbox_HEADERBYTES,
+            chunk_id,
+            constants.HYDRO_CONTEXT,
+            @ptrCast([*c]const u8,&ctx.key)
+        );
+        utils.log("r={d}\n", .{r});
+        // zig fmt: on
+
+        if (r != 0) {
+            utils.log("Unable to decrypt chunk #{d}\n", .{chunk_id});
+            break;
+        }
+
+        try stdout.writeAll(ctx.buf[0..chunk_size]);
+
+        chunk_id += 1;
     }
 }
 
