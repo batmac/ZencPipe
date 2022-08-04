@@ -8,7 +8,7 @@ implemented:
 - [ ] `-e, --encrypt          encryption mode`
 - [x] `-d, --decrypt          decryption mode`
 - [x] `-p, --pass <password>  use <password>`
-- [x] `-P, --passfile <file>  read password from <file>`
+- [ ] `-P, --passfile <file>  read password from <file>`
 - [ ] `-i, --in <file>        read input from <file>`
 - [ ] `-o, --out <file>       write output to <file>`
 - [x] `-h, --help             print this message`
