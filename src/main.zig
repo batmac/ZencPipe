@@ -27,6 +27,7 @@ const Context = struct {
 
 pub fn main() anyerror!void {
     var password: [:0]u8 = "";
+    var ctx = Context{};
 
     comptime {
         std.debug.assert(constants.HYDRO_CONTEXT.len == C.hydro_secretbox_CONTEXTBYTES);
@@ -81,6 +82,7 @@ pub fn main() anyerror!void {
         // std.log.info("pass: {s}", .{p});
         mem.copy(u8, password_buf[0..], p[0..]);
         password = password_buf[0..p.len :0];
+        try derive_key(&ctx, &password);
     }
 
     if (res.args.passfile) |p| {
@@ -96,12 +98,11 @@ pub fn main() anyerror!void {
         defer gpa.free(content);
         password = content;
         // std.log.err("pass: {s}", .{password});
+        try derive_key(&ctx, &password);
     }
 
     utils.log("password : {s}\n", .{password});
     utils.log("password length: {d}\n", .{password.len});
-    var ctx = Context{};
-    try derive_key(&ctx, &password);
 
     if (res.args.decrypt) {
         ctx.encrypt = false;
@@ -111,12 +112,26 @@ pub fn main() anyerror!void {
     }
     if (res.args.in) |in| {
         ctx.in = in;
+        return error.TODO;
     }
     if (res.args.out) |out| {
         ctx.in = out;
+        return error.TODO;
     }
 
-    _ = try stream_decrypt(&ctx);
+    if (!ctx.has_key) {
+        return error.KeyNotSet;
+    }
+    if (ctx.encrypt) |encrypt| {
+        if (encrypt) {
+            _ = try stream_encrypt(&ctx);
+        } else {
+            _ = try stream_decrypt(&ctx);
+        }
+    } else {
+        std.log.err("please choose -d or -e", .{});
+        return error.ModeNotChosen;
+    }
 }
 
 fn passgen() !void {
@@ -197,9 +212,8 @@ fn stream_decrypt(ctx: *Context) !void {
             constants.HYDRO_CONTEXT,
             @ptrCast([*c]const u8,&ctx.key)
         );
-        utils.log("r={d}\n", .{r});
         // zig fmt: on
-
+        utils.log("r={d}\n", .{r});
         if (r != 0) {
             utils.log("Unable to decrypt chunk #{d}\n", .{chunk_id});
             break;
@@ -209,6 +223,11 @@ fn stream_decrypt(ctx: *Context) !void {
 
         chunk_id += 1;
     }
+}
+
+fn stream_encrypt(ctx: *Context) !void {
+    _ = ctx;
+    return error.TODO;
 }
 
 test "basic test" {
