@@ -10,7 +10,7 @@ const utils = @import("utils.zig");
 const stdin = std.io.getStdIn().reader();
 const stdout = std.io.getStdOut().writer();
 
-var master_key = mem.zeroes([C.hydro_pwhash_MASTERKEYBYTES:0]u8);
+const master_key = mem.zeroes([C.hydro_pwhash_MASTERKEYBYTES:0]u8);
 var password_buf = mem.zeroes([constants.DEFAULT_BUFFER_SIZE:0]u8);
 
 const Context = struct {
@@ -135,8 +135,8 @@ pub fn main() anyerror!void {
 }
 
 fn passgen() !void {
-    var password = mem.zeroes([32:0]u8);
-    var hex = mem.zeroes([32 * 2 + 1:0]u8);
+    var password = comptime mem.zeroes([32:0]u8);
+    var hex = comptime mem.zeroes([32 * 2 + 1:0]u8);
 
     _ = C.hydro_random_buf(&password, password.len);
     // std.log.debug("{s}", .{password});
@@ -179,7 +179,7 @@ fn stream_decrypt(ctx: *Context) !void {
 
     // +1 to count the C string final zero.
     comptime std.debug.assert(ctx.buf.len + 1 >= 4 + C.hydro_secretbox_HEADERBYTES);
-    const max_chunk_size = ctx.buf.len - 4 - C.hydro_secretbox_HEADERBYTES;
+    const max_chunk_size = comptime ctx.buf.len - 4 - C.hydro_secretbox_HEADERBYTES;
     comptime std.debug.assert(max_chunk_size <= 0x7fffffff);
 
     var chunk_id: u64 = 0;
