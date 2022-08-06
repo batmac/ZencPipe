@@ -10,6 +10,9 @@ const utils = @import("utils.zig");
 const stdin = std.io.getStdIn().reader();
 const stdout = std.io.getStdOut().writer();
 
+var bw = std.io.bufferedWriter(stdout);
+const buffered_stdout = bw.writer();
+
 const master_key = mem.zeroes([C.hydro_pwhash_MASTERKEYBYTES:0]u8);
 var password_buf = mem.zeroes([constants.DEFAULT_BUFFER_SIZE:0]u8);
 
@@ -168,7 +171,7 @@ fn derive_key(ctx: *Context, password: *[:0]u8) !void {
         return error.PwHashingFailed;
     }
 
-    C.hydro_memzero(@ptrCast([*c]u8, password), password.len);
+    C.hydro_memzero(@ptrCast([*c]u8, password.*), password.len);
     ctx.has_key = true;
 }
 
@@ -177,8 +180,7 @@ fn stream_decrypt(ctx: *Context) !void {
 
     //const chunk = chunk_size_p + 4;
 
-    // +1 to count the C string final zero.
-    comptime std.debug.assert(ctx.buf.len + 1 >= 4 + C.hydro_secretbox_HEADERBYTES);
+    comptime std.debug.assert(ctx.buf.len >= 4 + C.hydro_secretbox_HEADERBYTES);
     const max_chunk_size = comptime ctx.buf.len - 4 - C.hydro_secretbox_HEADERBYTES;
     comptime std.debug.assert(max_chunk_size <= 0x7fffffff);
 
@@ -215,14 +217,19 @@ fn stream_decrypt(ctx: *Context) !void {
         // zig fmt: on
         utils.log("r={d}\n", .{r});
         if (r != 0) {
-            utils.log("Unable to decrypt chunk #{d}\n", .{chunk_id});
+            std.log.err("Unable to decrypt chunk #{d}", .{chunk_id});
+            if (chunk_id == 0)
+                utils.die("Wrong password or key?", .{})
+            else
+                utils.die("Corrupted or incomplete file?", .{});
             break;
         }
 
-        try stdout.writeAll(ctx.buf[0..chunk_size]);
+        try buffered_stdout.writeAll(ctx.buf[0..chunk_size]);
 
         chunk_id += 1;
     }
+    try bw.flush();
 }
 
 fn stream_encrypt(ctx: *Context) !void {
