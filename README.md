@@ -5,7 +5,7 @@ just trying to learn Zig 😊
 implemented:
 
 - [x] `-G, --passgen          generate a random password`
-- [ ] `-e, --encrypt          encryption mode`
+- [x] `-e, --encrypt          encryption mode`
 - [x] `-d, --decrypt          decryption mode`
 - [x] `-p, --pass <password>  use <password>`
 - [ ] `-P, --passfile <file>  read password from <file>`

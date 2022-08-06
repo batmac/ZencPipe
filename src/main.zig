@@ -207,12 +207,12 @@ fn stream_decrypt(ctx: *Context) !void {
 
         // zig fmt: off
         const r = C.hydro_secretbox_decrypt(
-            @ptrCast(*anyopaque,&ctx.buf),
-            @ptrCast([*c]const u8,&ctx.buf),
+            @ptrCast(*anyopaque, &ctx.buf),
+            @ptrCast([*c]const u8, &ctx.buf),
             chunk_size + C.hydro_secretbox_HEADERBYTES,
             chunk_id,
             constants.HYDRO_CONTEXT,
-            @ptrCast([*c]const u8,&ctx.key)
+            @ptrCast([*c]const u8, &ctx.key)
         );
         // zig fmt: on
         utils.log("r={d}\n", .{r});
@@ -233,8 +233,56 @@ fn stream_decrypt(ctx: *Context) !void {
 }
 
 fn stream_encrypt(ctx: *Context) !void {
-    _ = ctx;
-    return error.TODO;
+    utils.log("stream_encrypt...\n", .{});
+
+    comptime std.debug.assert(ctx.buf.len >= 4 + C.hydro_secretbox_HEADERBYTES);
+    const max_chunk_size = comptime ctx.buf.len - 4 - C.hydro_secretbox_HEADERBYTES;
+    comptime std.debug.assert(max_chunk_size <= 0x7fffffff);
+
+    var chunk_id: u64 = 0;
+    const in = ctx.file_in.?;
+
+    while (true) {
+        const chunk_size = try in.read(ctx.buf[4 .. max_chunk_size + 4]);
+        utils.log("chunk_size={d}\n", .{chunk_size});
+        if (chunk_size < 0) {
+            utils.die("read()", .{});
+        }
+        const chunk_size32 = @intCast(u32, chunk_size);
+
+        // zig fmt: off
+        mem.writeIntLittle(
+            u32,
+            @ptrCast(*[4]u8, &ctx.buf[0]),
+            chunk_size32
+        );
+        // zig fmt: on
+        inline for ([_]u8{ 0, 1, 2, 3 }) |i|
+            utils.log("ctx.buf[{d}]={d}\n", .{ i, ctx.buf[i] });
+        // zig fmt: off
+        const r = C.hydro_secretbox_encrypt(
+            @ptrCast([*c]u8, &ctx.buf[4]),
+            @ptrCast([*c]const u8, &ctx.buf[4]),
+            chunk_size,
+            chunk_id,
+            constants.HYDRO_CONTEXT,
+            @ptrCast([*c]const u8, &ctx.key)
+        );
+        // zig fmt: on
+        utils.log("r={d}\n", .{r});
+        if (r != 0) {
+            utils.die("Encryption error", .{});
+        }
+
+        try buffered_stdout.writeAll(ctx.buf[0 .. chunk_size + 4 + C.hydro_secretbox_HEADERBYTES]);
+
+        if (chunk_size == 0) {
+            break;
+        }
+
+        chunk_id += 1;
+    }
+    try bw.flush();
 }
 
 test "basic test" {
