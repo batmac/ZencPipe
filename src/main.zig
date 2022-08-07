@@ -10,8 +10,8 @@ const utils = @import("utils.zig");
 const stdin = std.io.getStdIn().reader();
 const stdout = std.io.getStdOut().writer();
 
-var bw = std.io.bufferedWriter(stdout);
-const buffered_stdout = bw.writer();
+// var bw = std.io.bufferedWriter(stdout);
+// const buffered_stdout = bw.writer();
 
 const master_key = mem.zeroes([C.hydro_pwhash_MASTERKEYBYTES:0]u8);
 var password_buf = mem.zeroes([constants.DEFAULT_BUFFER_SIZE:0]u8);
@@ -110,12 +110,12 @@ pub fn main() anyerror!void {
     }
     if (res.args.in) |in| {
         ctx.in = in;
-        return error.TODO;
     }
     if (res.args.out) |out| {
-        ctx.in = out;
-        return error.TODO;
+        ctx.out = out;
     }
+
+    try setupStreams(&ctx);
 
     if (!ctx.has_key) {
         return error.KeyNotSet;
@@ -179,6 +179,7 @@ fn streamDecrypt(ctx: *Context) !void {
 
     var chunk_id: u64 = 0;
     const in = ctx.file_in.?;
+    const out = ctx.file_out.?;
 
     while (true) {
         const chunk_size = try in.readIntLittle(u32);
@@ -218,11 +219,11 @@ fn streamDecrypt(ctx: *Context) !void {
             break;
         }
 
-        try buffered_stdout.writeAll(ctx.buf[0..chunk_size]);
+        try out.writeAll(ctx.buf[0..chunk_size]);
 
         chunk_id += 1;
     }
-    try bw.flush();
+    // try bw.flush();
 }
 
 fn streamEncrypt(ctx: *Context) !void {
@@ -234,6 +235,7 @@ fn streamEncrypt(ctx: *Context) !void {
 
     var chunk_id: u64 = 0;
     const in = ctx.file_in.?;
+    const out = ctx.file_out.?;
 
     while (true) {
         const chunk_size = try in.read(ctx.buf[4 .. max_chunk_size + 4]);
@@ -265,7 +267,7 @@ fn streamEncrypt(ctx: *Context) !void {
             utils.die("Encryption error", .{});
         }
 
-        try buffered_stdout.writeAll(ctx.buf[0 .. chunk_size + 4 + C.hydro_secretbox_HEADERBYTES]);
+        try out.writeAll(ctx.buf[0 .. chunk_size + 4 + C.hydro_secretbox_HEADERBYTES]);
 
         if (chunk_size == 0) {
             break;
@@ -273,7 +275,26 @@ fn streamEncrypt(ctx: *Context) !void {
 
         chunk_id += 1;
     }
-    try bw.flush();
+    // try bw.flush();
+}
+
+fn setupStreams(ctx: *Context) !void {
+    if (ctx.in) |in| {
+        utils.log("reading {s}...", .{in});
+        var f = fs.cwd().openFile(in, fs.File.OpenFlags{ .mode = .read_only }) catch |err| {
+            std.log.err("in: {s} {?}", .{ in, err });
+            return err;
+        };
+        ctx.file_in = f.reader();
+    }
+    if (ctx.out) |out| {
+        utils.log("writing to {s}...", .{out});
+        var f = fs.cwd().createFile(out, .{}) catch |err| {
+            std.log.err("out: {s} {?}", .{ out, err });
+            return err;
+        };
+        ctx.file_out = f.writer();
+    }
 }
 
 test "passGen" {
