@@ -300,3 +300,7 @@ fn setupStreams(ctx: *Context) !void {
 test "passGen" {
     try passGen();
 }
+
+test "recurse" {
+    std.testing.refAllDeclsRecursive(@This());
+}

@@ -26,6 +26,7 @@ pub fn build(b: *std.build.Builder) void {
 
     const lib_tests = b.addSystemCommand(&.{ "make", "-C", libhydrogenDir, "test" });
     const exe_tests = b.addTest("src/main.zig");
+    deps.addAllTo(exe_tests);
     addLib(exe_tests);
     exe_tests.setTarget(target);
     exe_tests.setBuildMode(mode);
