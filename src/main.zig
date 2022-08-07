@@ -75,13 +75,13 @@ pub fn main() anyerror!void {
     }
 
     if (res.args.passgen) {
-        return passgen();
+        return passGen();
     }
 
     if (res.args.pass) |p| {
         mem.copy(u8, password_buf[0..], p[0..]);
         password = password_buf[0..p.len :0];
-        try derive_key(&ctx, password);
+        try deriveKey(&ctx, password);
     }
 
     if (res.args.passfile) |p| {
@@ -96,7 +96,7 @@ pub fn main() anyerror!void {
         defer gpa.free(content);
         password = content;
         // std.log.err("pass: {s}", .{password});
-        try derive_key(&ctx, password);
+        try deriveKey(&ctx, password);
     }
 
     utils.log("password : {s}\n", .{password});
@@ -122,9 +122,9 @@ pub fn main() anyerror!void {
     }
     if (ctx.encrypt) |encrypt| {
         if (encrypt) {
-            _ = try stream_encrypt(&ctx);
+            _ = try streamEncrypt(&ctx);
         } else {
-            _ = try stream_decrypt(&ctx);
+            _ = try streamDecrypt(&ctx);
         }
     } else {
         std.log.err("please choose -d or -e", .{});
@@ -132,7 +132,7 @@ pub fn main() anyerror!void {
     }
 }
 
-fn passgen() !void {
+fn passGen() !void {
     var password = comptime mem.zeroes([32:0]u8);
     var hex = comptime mem.zeroes([32 * 2 + 1:0]u8);
 
@@ -146,8 +146,8 @@ fn passgen() !void {
     _ = try stdout.print("{s}\n", .{hex});
 }
 
-fn derive_key(ctx: *Context, password: [:0]u8) !void {
-    utils.log("derive_key...\n", .{});
+fn deriveKey(ctx: *Context, password: [:0]u8) !void {
+    utils.log("deriveKey...\n", .{});
     if (ctx.has_key) {
         return error.KeyAlreadySet;
     }
@@ -160,7 +160,7 @@ fn derive_key(ctx: *Context, password: [:0]u8) !void {
       constants.PWHASH_THREADS,
     );
     // zig fmt: on
-    utils.log("end derive_key...\n", .{});
+    utils.log("end deriveKey...\n", .{});
 
     if (x != 0) {
         return error.PwHashingFailed;
@@ -170,8 +170,8 @@ fn derive_key(ctx: *Context, password: [:0]u8) !void {
     ctx.has_key = true;
 }
 
-fn stream_decrypt(ctx: *Context) !void {
-    utils.log("stream_decrypt...\n", .{});
+fn streamDecrypt(ctx: *Context) !void {
+    utils.log("streamDecrypt...\n", .{});
 
     comptime std.debug.assert(ctx.buf.len >= 4 + C.hydro_secretbox_HEADERBYTES);
     const max_chunk_size = comptime ctx.buf.len - 4 - C.hydro_secretbox_HEADERBYTES;
@@ -225,8 +225,8 @@ fn stream_decrypt(ctx: *Context) !void {
     try bw.flush();
 }
 
-fn stream_encrypt(ctx: *Context) !void {
-    utils.log("stream_encrypt...\n", .{});
+fn streamEncrypt(ctx: *Context) !void {
+    utils.log("streamEncrypt...\n", .{});
 
     comptime std.debug.assert(ctx.buf.len >= 4 + C.hydro_secretbox_HEADERBYTES);
     const max_chunk_size = comptime ctx.buf.len - 4 - C.hydro_secretbox_HEADERBYTES;
@@ -276,6 +276,6 @@ fn stream_encrypt(ctx: *Context) !void {
     try bw.flush();
 }
 
-test "passgen" {
-    try passgen();
+test "passGen" {
+    try passGen();
 }
