@@ -32,9 +32,7 @@ pub fn main() anyerror!void {
     var password: [:0]u8 = "";
     var ctx = Context{};
 
-    comptime {
-        std.debug.assert(constants.HYDRO_CONTEXT.len == C.hydro_secretbox_CONTEXTBYTES);
-    }
+    comptime std.debug.assert(constants.HYDRO_CONTEXT.len == C.hydro_secretbox_CONTEXTBYTES);
 
     var general_purpose_allocator = std.heap.GeneralPurposeAllocator(.{}){};
     defer std.debug.assert(!general_purpose_allocator.deinit());
@@ -42,7 +40,6 @@ pub fn main() anyerror!void {
 
     // Note that info level log messages are by default printed only in Debug
     // and ReleaseSafe build modes.
-    // std.log.info("All your codebase are belong to us.", .{});
     const params = comptime clap.parseParamsComptime(
         \\-G, --passgen          generate a random password
         \\-e, --encrypt          encryption mode
@@ -82,7 +79,6 @@ pub fn main() anyerror!void {
     }
 
     if (res.args.pass) |p| {
-        // std.log.info("pass: {s}", .{p});
         mem.copy(u8, password_buf[0..], p[0..]);
         password = password_buf[0..p.len :0];
         try derive_key(&ctx, password);
@@ -90,7 +86,6 @@ pub fn main() anyerror!void {
 
     if (res.args.passfile) |p| {
         utils.log("read passfile...\n", .{});
-        // std.log.info("passfile: {s}", .{p});
         var f = fs.cwd().openFile(p, fs.File.OpenFlags{ .mode = .read_only }) catch |err| {
             std.log.err("{s} {?}", .{ p, err });
             return;
@@ -178,8 +173,6 @@ fn derive_key(ctx: *Context, password: [:0]u8) !void {
 fn stream_decrypt(ctx: *Context) !void {
     utils.log("stream_decrypt...\n", .{});
 
-    //const chunk = chunk_size_p + 4;
-
     comptime std.debug.assert(ctx.buf.len >= 4 + C.hydro_secretbox_HEADERBYTES);
     const max_chunk_size = comptime ctx.buf.len - 4 - C.hydro_secretbox_HEADERBYTES;
     comptime std.debug.assert(max_chunk_size <= 0x7fffffff);
@@ -245,9 +238,7 @@ fn stream_encrypt(ctx: *Context) !void {
     while (true) {
         const chunk_size = try in.read(ctx.buf[4 .. max_chunk_size + 4]);
         utils.log("chunk_size={d}\n", .{chunk_size});
-        if (chunk_size < 0) {
-            utils.die("read()", .{});
-        }
+
         const chunk_size32 = @intCast(u32, chunk_size);
 
         // zig fmt: off
@@ -285,14 +276,6 @@ fn stream_encrypt(ctx: *Context) !void {
     try bw.flush();
 }
 
-test "basic test" {
-    try std.testing.expectEqual(10, 3 + 7);
-}
-
 test "passgen" {
     try passgen();
 }
-
-//test "recursive" {
-//    std.testing.refAllDeclsRecursive(@This());
-//}
