@@ -7,8 +7,8 @@ const C = @cImport({
 });
 const constants = @import("constants.zig");
 const utils = @import("utils.zig");
-const stdin = std.io.getStdIn().reader();
-const stdout = std.io.getStdOut().writer();
+const stdin = std.io.getStdIn();
+const stdout = std.io.getStdOut();
 
 // var bw = std.io.bufferedWriter(stdout);
 // const buffered_stdout = bw.writer();
@@ -22,8 +22,8 @@ const Context = struct {
     key: ?[C.hydro_secretbox_KEYBYTES:0]u8 = null,
     buf: [constants.DEFAULT_BUFFER_SIZE:0]u8 =
         mem.zeroes([constants.DEFAULT_BUFFER_SIZE:0]u8),
-    file_in: ?std.fs.File.Reader = stdin,
-    file_out: ?std.fs.File.Writer = stdout,
+    file_in: ?std.fs.File = stdin,
+    file_out: ?std.fs.File = stdout,
     encrypt: ?bool = null,
     has_key: bool = false,
 };
@@ -130,6 +130,9 @@ pub fn main() anyerror!void {
         std.log.err("please choose -d or -e", .{});
         return error.ModeNotChosen;
     }
+
+    ctx.file_in.?.close();
+    ctx.file_out.?.close();
 }
 
 fn passGen() !void {
@@ -143,7 +146,7 @@ fn passGen() !void {
         _ = C.hydro_memzero(&password, password.len);
         _ = C.hydro_memzero(&hex, hex.len);
     }
-    _ = try stdout.print("{s}\n", .{hex});
+    _ = try stdout.writer().print("{s}\n", .{hex});
 }
 
 fn deriveKey(ctx: *Context, password: [:0]u8) !void {
@@ -178,8 +181,8 @@ fn streamDecrypt(ctx: *Context) !void {
     comptime std.debug.assert(max_chunk_size <= 0x7fffffff);
 
     var chunk_id: u64 = 0;
-    const in = ctx.file_in.?;
-    const out = ctx.file_out.?;
+    const in = ctx.file_in.?.reader();
+    const out = ctx.file_out.?.writer();
 
     while (true) {
         const chunk_size = try in.readIntLittle(u32);
@@ -234,8 +237,8 @@ fn streamEncrypt(ctx: *Context) !void {
     comptime std.debug.assert(max_chunk_size <= 0x7fffffff);
 
     var chunk_id: u64 = 0;
-    const in = ctx.file_in.?;
-    const out = ctx.file_out.?;
+    const in = ctx.file_in.?.reader();
+    const out = ctx.file_out.?.writer();
 
     while (true) {
         const chunk_size = try in.read(ctx.buf[4 .. max_chunk_size + 4]);
@@ -280,20 +283,20 @@ fn streamEncrypt(ctx: *Context) !void {
 
 fn setupStreams(ctx: *Context) !void {
     if (ctx.in) |in| {
-        utils.log("reading {s}...", .{in});
+        utils.log("reading {s}...\n", .{in});
         var f = fs.cwd().openFile(in, fs.File.OpenFlags{ .mode = .read_only }) catch |err| {
             std.log.err("in: {s} {?}", .{ in, err });
             return err;
         };
-        ctx.file_in = f.reader();
+        ctx.file_in = f;
     }
     if (ctx.out) |out| {
-        utils.log("writing to {s}...", .{out});
+        utils.log("writing to {s}...\n", .{out});
         var f = fs.cwd().createFile(out, .{}) catch |err| {
             std.log.err("out: {s} {?}", .{ out, err });
             return err;
         };
-        ctx.file_out = f.writer();
+        ctx.file_out = f;
     }
 }
 

@@ -5,7 +5,7 @@ const expect = std.testing.expect;
 const stderr = std.io.getStdErr().writer();
 
 pub inline fn log(comptime format: []const u8, args: anytype) void {
-    stderr.print(format, args) catch unreachable;
+    // stderr.print(format, args) catch unreachable;
     _ = comptime format;
     _ = comptime args;
 }
