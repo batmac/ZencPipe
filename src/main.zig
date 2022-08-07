@@ -85,7 +85,7 @@ pub fn main() anyerror!void {
         // std.log.info("pass: {s}", .{p});
         mem.copy(u8, password_buf[0..], p[0..]);
         password = password_buf[0..p.len :0];
-        try derive_key(&ctx, &password);
+        try derive_key(&ctx, password);
     }
 
     if (res.args.passfile) |p| {
@@ -101,7 +101,7 @@ pub fn main() anyerror!void {
         defer gpa.free(content);
         password = content;
         // std.log.err("pass: {s}", .{password});
-        try derive_key(&ctx, &password);
+        try derive_key(&ctx, password);
     }
 
     utils.log("password : {s}\n", .{password});
@@ -151,7 +151,7 @@ fn passgen() !void {
     _ = try stdout.print("{s}\n", .{hex});
 }
 
-fn derive_key(ctx: *Context, password: *[:0]u8) !void {
+fn derive_key(ctx: *Context, password: [:0]u8) !void {
     utils.log("derive_key...\n", .{});
     if (ctx.has_key) {
         return error.KeyAlreadySet;
@@ -159,7 +159,7 @@ fn derive_key(ctx: *Context, password: *[:0]u8) !void {
     // zig fmt: off
     const x = C.hydro_pwhash_deterministic(
       @ptrCast([*c]u8, &ctx.key), C.hydro_secretbox_KEYBYTES,
-      @ptrCast([*c]const u8, password.*), password.len,
+      @ptrCast([*c]const u8, password), password.len,
       constants.HYDRO_CONTEXT, &master_key,
       constants.PWHASH_OPSLIMIT, constants.PWHASH_MEMLIMIT,
       constants.PWHASH_THREADS,
@@ -171,7 +171,7 @@ fn derive_key(ctx: *Context, password: *[:0]u8) !void {
         return error.PwHashingFailed;
     }
 
-    C.hydro_memzero(@ptrCast([*c]u8, password.*), password.len);
+    C.hydro_memzero(@ptrCast([*c]u8, password), password.len);
     ctx.has_key = true;
 }
 
