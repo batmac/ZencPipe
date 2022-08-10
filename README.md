@@ -12,5 +12,6 @@ implemented:
 - [x] `-i, --in <file>        read input from <file>`
 - [x] `-o, --out <file>       write output to <file>`
 - [x] `-h, --help             print this message`
+- [ ] test
 
 original is [here](https://github.com/jedisct1/encpipe)
