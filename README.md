@@ -29,4 +29,4 @@ zig build test
 zig build -Drelease-safe # or -Drelease-fast
 ```
 
-Note that building without `release-safe` or `release-fast` will be very slow.
+Note that building without `release-safe` or `release-fast` will give a very slow binary.
