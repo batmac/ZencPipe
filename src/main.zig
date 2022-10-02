@@ -29,7 +29,7 @@ const Context = struct {
 };
 
 pub fn main() anyerror!void {
-    var password: [:0]u8 = "";
+    var password: [:0]u8 = undefined;
     var ctx = Context{};
 
     comptime std.debug.assert(constants.HYDRO_CONTEXT.len == C.hydro_secretbox_CONTEXTBYTES);
@@ -95,11 +95,11 @@ pub fn main() anyerror!void {
         f.close();
         defer gpa.free(content);
         password = content;
-        // std.log.err("pass: {s}", .{password});
+        //std.log.err("pass: {s}", .{password});
         try deriveKey(&ctx, password);
     }
 
-    utils.log("password : {s}\n", .{password});
+    // utils.log("password : {s}\n", .{password.?});
     utils.log("password length: {d}\n", .{password.len});
 
     if (res.args.decrypt) {

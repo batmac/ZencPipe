@@ -43,5 +43,5 @@ fn addLib(exe: *std.build.LibExeObjStep) void {
         "-Wall",
         "-Wextra",
     });
-    exe.addIncludeDir(libhydrogenDir);
+    exe.addIncludePath(libhydrogenDir);
 }
