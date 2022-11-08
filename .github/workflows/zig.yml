@@ -17,7 +17,7 @@ jobs:
           submodules: "recursive"
 
       - name: Setup Zig
-        uses: goto-bus-stop/setup-zig@v1.3.0
+        uses: goto-bus-stop/setup-zig@v2.0.1
         with:
           version: master
 
@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: goto-bus-stop/setup-zig@v1.3.0
+      - uses: goto-bus-stop/setup-zig@v2.0.1
         with:
           version: master
       - run: zig fmt --check .
