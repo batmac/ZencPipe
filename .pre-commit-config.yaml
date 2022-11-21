@@ -28,7 +28,7 @@ repos:
       - id: mixed-line-ending
         args: ['--fix=lf']
   - repo: https://github.com/zricethezav/gitleaks
-    rev: v8.15.0
+    rev: v8.15.1
     hooks:
       - id: gitleaks
   - repo: https://github.com/batmac/pre-commit-zig
